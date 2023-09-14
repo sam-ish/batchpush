@@ -1,4 +1,4 @@
-# Payload Queue Lib
+# Payload Queue
 This library helps you queue data/structs for future work based on queue size or age in the queue.
 
 It is designed to be lightweight, efficient and easy to use.
@@ -6,6 +6,8 @@ It is designed to be lightweight, efficient and easy to use.
 Free feel to make any suggestions for improvements/optimizations.
 
 # Simple usage: 
+
+```
 import (
 	plq "github.com/sam-ish/payloadqueue"
 )
@@ -34,3 +36,5 @@ func Datahandler(data []interface{}) int {
 	// ..do meaningful work on the data
 	return 0 // zero is success
 }
+```
+
