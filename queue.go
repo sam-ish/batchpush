@@ -69,14 +69,7 @@ func (q *Queue) Start() error {
 
 			case <-q.quitChan:
 				// We have been asked to stop.
-				q.event("BP Queue: Stopping...")
-				close(q.payloadChan)
-				close(q.quitChan)
-				// wait for all active routines to be completed
-				for q.activeWork > 0 {
-					time.Sleep(time.Second * 1)
-				}
-				q.event("BP Queue: All Work completed")
+				q.Close()
 				return
 			}
 		}
@@ -129,9 +122,14 @@ func (q *Queue) Append(p Payload) {
 
 // Close to close the channels and wait for Work funcs to quit the execution.
 func (q *Queue) Close() {
-	go func() {
-		q.quitChan <- true
-	}()
+	q.event("BP Queue: Stopping...")
+	close(q.payloadChan)
+	close(q.quitChan)
+	// wait for all active routines to be completed
+	for q.activeWork > 0 {
+		time.Sleep(time.Second * 1)
+	}
+	q.event("BP Queue: All Work completed")
 }
 
 func (q *Queue) event(s string) {
