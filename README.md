@@ -6,6 +6,7 @@ It is designed to be lightweight, efficient and easy to use.
 Free feel to make any suggestions for improvements/optimizations.
 
 # Simple usage: 
+A complete producer example is in the [examples folder](./examples/producer/). Below is a sample usage:
 
 ```
 import (
