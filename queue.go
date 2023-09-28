@@ -3,18 +3,11 @@ package payloadqueue
 import (
 	"errors"
 	"log"
-	"math/rand"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 )
-
-// work to be implemented by the consumer to handle the batched (array) payload
-type workHandler func([]interface{}) int
-
-// eventFeed to pass information/verbose to the client for handling
-type eventFeed func(string)
 
 // Queue to hold the main application queuing mechanism.
 type Queue struct {
@@ -34,7 +27,7 @@ type Queue struct {
 func (q *Queue) Start() error {
 	q.expires = time.Now().Add(time.Duration(q.MaxAge) * time.Second)
 	if q.Work == nil {
-		return errors.New("The Work function is not supplied")
+		return errors.New("the Work function is not supplied")
 	}
 	if q.MaxSize == 0 {
 		q.MaxSize = 100
@@ -122,27 +115,18 @@ func (q *Queue) Append(p Payload) {
 
 // Close to close the channels and wait for Work funcs to quit the execution.
 func (q *Queue) Close() {
-	q.event("BP Queue: Stopping...")
+	q.event("Buffer Queue: Stopping...")
 	close(q.payloadChan)
 	close(q.quitChan)
 	// wait for all active routines to be completed
 	for q.activeWork > 0 {
 		time.Sleep(time.Second * 1)
 	}
-	q.event("BP Queue: All Work completed")
+	q.event("Buffer Queue: All Work completed")
 }
 
 func (q *Queue) event(s string) {
 	if q.EventFeed != nil {
 		q.EventFeed("[" + q.Tag + "] " + s)
 	}
-}
-
-func defaultTag(n int) string {
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
 }
