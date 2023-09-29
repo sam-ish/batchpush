@@ -1,12 +1,12 @@
 # Payload Queue
-This library helps you queue data/structs for future work based on queue size or age in the queue.
+This library provides 2 Queues: BufferQueue and RateQueue. BufferQueue (the generic) allows you queue data/structs for future work based on queue size or age in the queue. RateQueues allow you to process requests/data in a steady speed/state irrespective of the speed of generation.
 
 It is designed to be lightweight, efficient and easy to use.
 
 Free feel to make any suggestions for improvements/optimizations.
 
 # Simple usage: 
-A complete producer example is in the [examples folder](./examples/producer/). Below is a sample usage:
+There are simple code examples in the [examples folder](./examples/bufferQueue/). Below is a sample usage:
 
 ```
 import (
