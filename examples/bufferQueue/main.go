@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -56,12 +58,18 @@ func main() {
 }
 
 type Job struct {
-	Name     string
-	Duration int // milliseconds
+	Name     string `json:"name"`
+	Duration int    `json:"duration"` // milliseconds
 }
 
 func Datahandler(pls []interface{}) int {
-	time.Sleep(3 * time.Second)
+	jobs := make([]Job, 0)
+	bodyBytes, _ := json.Marshal(pls)
+	json.Unmarshal(bodyBytes, &jobs)
+
+	for _, v := range jobs {
+		fmt.Println("Got: " + v.Name)
+	}
 	return 0
 }
 
