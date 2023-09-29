@@ -3,7 +3,7 @@ package payloadqueue
 import "math/rand"
 
 type Payload struct {
-	id   string
+	Id   string
 	Data interface{}
 }
 

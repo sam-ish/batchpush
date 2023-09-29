@@ -2,6 +2,7 @@ package payloadqueue
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -75,7 +76,7 @@ func (q *RateQueue) Start() error {
 func (q RateQueue) NewPayload(pl interface{}) Payload {
 	u := uuid.New()
 	return Payload{
-		id:   u.String(),
+		Id:   u.String(),
 		Data: pl,
 	}
 }
@@ -86,8 +87,9 @@ func (q *RateQueue) RunNext() {
 		return
 	}
 	var pl Payload
-	pl, q.payloadQueue = q.payloadQueue[len(q.payloadQueue)-1], q.payloadQueue[:len(q.payloadQueue)-1]
-	q.event("Pushed [" + pl.id + "] @ " + time.Now().String() + ". Result: " + strconv.Itoa(q.Work(pl)))
+	//pl, q.payloadQueue = q.payloadQueue[len(q.payloadQueue)-1], q.payloadQueue[:len(q.payloadQueue)-1]
+	pl, q.payloadQueue = q.payloadQueue[0], q.payloadQueue[1:]
+	q.event("Pushed [" + pl.Id + "] @ " + time.Now().UTC().String() + ". Result: " + strconv.Itoa(q.Work(pl.Data)))
 }
 
 // Append to add a Payload to the queue.
@@ -95,13 +97,13 @@ func (q *RateQueue) Append(p Payload) error {
 	// Check the conditions for firing the Work()
 	// 1. Queue is full
 	if len(q.payloadQueue) >= q.MaxSize {
-		q.event("Payload " + p.id + " failed. RateQueue is full")
-		return errors.New("Payload " + p.id + " failed. RateQueue is full. Try again later")
+		q.event("Payload " + p.Id + " failed. RateQueue is full")
+		return errors.New("Payload " + p.Id + " failed. RateQueue is full. Try again later")
 	}
 	// Add to the queue
-	if p.id != "" {
+	if p.Id != "" {
 		q.payloadQueue = append(q.payloadQueue, p)
-		q.event("Payload Queued [id]: " + p.id)
+		q.event("Payload Queued [id]: " + p.Id)
 	}
 	return nil
 }
@@ -124,11 +126,16 @@ func (q *RateQueue) Restart() {
 // Close to close the channels and wait for Work funcs to quit the execution.
 func (q *RateQueue) Close() {
 	q.event("Rate Queue: Stopping...")
-	close(q.payloadChan)
-	close(q.quitChan)
+	if q.payloadChan != nil {
+		close(q.payloadChan)
+	}
+	if q.quitChan != nil {
+		close(q.quitChan)
+	}
 	if !q.DiscardOnClose {
 		// Flush all active routines to be completed
 		q.delay = 100000
+		fmt.Println("Pending Payloads in Queue: " + strconv.Itoa(len(q.payloadQueue)))
 		for len(q.payloadQueue) > 0 {
 			q.RunNext()
 		}

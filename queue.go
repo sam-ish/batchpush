@@ -74,7 +74,7 @@ func (q *Queue) Start() error {
 func (q Queue) NewPayload(pl interface{}) Payload {
 	u := uuid.New()
 	return Payload{
-		id:   u.String(),
+		Id:   u.String(),
 		Data: pl,
 	}
 }
@@ -98,9 +98,9 @@ func (q *Queue) Run(Payloads []Payload) {
 // Append to add a Payload to the queue. This is a
 func (q *Queue) Append(p Payload) {
 	// Add to the queue
-	if p.id != "" {
+	if p.Id != "" {
 		q.payloadQueue = append(q.payloadQueue, p)
-		q.event("Payload Queued [id]: " + p.id)
+		q.event("Payload Queued [id]: " + p.Id)
 	}
 	// Check the conditions for firing the Work()
 	// 1. Queue is full
@@ -116,8 +116,12 @@ func (q *Queue) Append(p Payload) {
 // Close to close the channels and wait for Work funcs to quit the execution.
 func (q *Queue) Close() {
 	q.event("Buffer Queue: Stopping...")
-	close(q.payloadChan)
-	close(q.quitChan)
+	if q.payloadChan != nil {
+		close(q.payloadChan)
+	}
+	if q.quitChan != nil {
+		close(q.quitChan)
+	}
 	// wait for all active routines to be completed
 	for q.activeWork > 0 {
 		time.Sleep(time.Second * 1)
