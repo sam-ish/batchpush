@@ -6,7 +6,7 @@ It is designed to be lightweight, efficient and easy to use.
 Free feel to make any suggestions for improvements/optimizations.
 
 # Simple usage: 
-There are simple code examples in the [examples folder](./examples/bufferQueue/). Below is a sample usage:
+There are simple code examples in the [examples folder](./examples/). Below is a sample usage:
 
 ```
 import (
