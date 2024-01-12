@@ -2,8 +2,8 @@ package payloadqueue
 
 import (
 	"errors"
-	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +16,7 @@ type Queue struct {
 	MaxAge       int // seconds
 	Work         workHandler
 	EventFeed    eventFeed
+	payloadMutex sync.Mutex
 	payloadQueue []Payload
 	payloadChan  chan Payload
 	quitChan     chan bool
@@ -72,6 +73,12 @@ func (q *Queue) Start() error {
 }
 
 func (q Queue) NewPayload(pl interface{}) Payload {
+	if pl == nil {
+		return Payload{
+			Id:   "",
+			Data: "",
+		}
+	}
 	u := uuid.New()
 	return Payload{
 		Id:   u.String(),
@@ -80,9 +87,9 @@ func (q Queue) NewPayload(pl interface{}) Payload {
 }
 
 // Run to push the Batch for processing
-func (q *Queue) Run(Payloads []Payload) {
+func (q *Queue) Run(Payloads []Payload) error {
 	if q.Work == nil {
-		log.Fatalln()
+		return errors.New("no Work() is passed")
 	}
 	q.event("Batch Push [" + q.Tag + "]: Running. Queue Size: " + strconv.Itoa(len(Payloads)) + " @ " + time.Now().String())
 	q.activeWork++
@@ -93,24 +100,32 @@ func (q *Queue) Run(Payloads []Payload) {
 	result := q.Work(pl)
 	q.event("Batch Push [" + q.Tag + "]: Finished. Result Code: " + strconv.Itoa(result) + " @ " + time.Now().String())
 	q.activeWork--
+
+	return nil
 }
 
 // Append to add a Payload to the queue. This is a
-func (q *Queue) Append(p Payload) {
+func (q *Queue) Append(p Payload) error {
 	// Add to the queue
 	if p.Id != "" {
+		q.payloadMutex.Lock()
 		q.payloadQueue = append(q.payloadQueue, p)
+		q.payloadMutex.Unlock()
 		q.event("Payload Queued [id]: " + p.Id)
 	}
 	// Check the conditions for firing the Work()
 	// 1. Queue is full
 	// 2. MaxAge has expired
 	if len(q.payloadQueue) >= q.MaxSize || time.Now().After(q.expires) {
-		go q.Run(q.payloadQueue)
+		q.payloadMutex.Lock()
+		pls := q.payloadQueue
+		go q.Run(pls)
 		// reset the queue
 		q.payloadQueue = nil
+		q.payloadMutex.Unlock()
 		q.expires = time.Now().Add(time.Duration(q.MaxAge) * time.Second)
 	}
+	return nil
 }
 
 // Close to close the channels and wait for Work funcs to quit the execution.
@@ -129,8 +144,14 @@ func (q *Queue) Close() {
 	q.event("Buffer Queue: All Work completed")
 }
 
+// event to write events into the Queue's feed
 func (q *Queue) event(s string) {
 	if q.EventFeed != nil {
 		q.EventFeed("[" + q.Tag + "] " + s)
 	}
+}
+
+// Size to return the number of payloads in the queue
+func (q *Queue) Size() int {
+	return len(q.payloadQueue)
 }

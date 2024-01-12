@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,7 @@ type RateQueue struct {
 	Work              rateWorkHandler
 	EventFeed         eventFeed
 	DiscardOnClose    bool
+	payloadMutex      sync.Mutex
 	payloadQueue      []Payload
 	payloadChan       chan Payload
 	quitChan          chan bool
@@ -74,6 +76,12 @@ func (q *RateQueue) Start() error {
 }
 
 func (q RateQueue) NewPayload(pl interface{}) Payload {
+	if pl == nil {
+		return Payload{
+			Id:   "",
+			Data: "",
+		}
+	}
 	u := uuid.New()
 	return Payload{
 		Id:   u.String(),
@@ -87,13 +95,16 @@ func (q *RateQueue) RunNext() {
 		return
 	}
 	var pl Payload
-	//pl, q.payloadQueue = q.payloadQueue[len(q.payloadQueue)-1], q.payloadQueue[:len(q.payloadQueue)-1]
+
+	q.payloadMutex.Lock()
 	pl, q.payloadQueue = q.payloadQueue[0], q.payloadQueue[1:]
-	q.event("Pushed [" + pl.Id + "] @ " + time.Now().UTC().String() + ". Result: " + strconv.Itoa(q.Work(pl.Data)))
+	q.payloadMutex.Unlock()
+	go q.event("Pushed [" + pl.Id + "] @ " + time.Now().UTC().String() + ". Result: " + strconv.Itoa(q.Work(pl.Data)))
 }
 
 // Append to add a Payload to the queue.
 func (q *RateQueue) Append(p Payload) error {
+
 	// Check the conditions for firing the Work()
 	// 1. Queue is full
 	if len(q.payloadQueue) >= q.MaxSize {
@@ -102,7 +113,9 @@ func (q *RateQueue) Append(p Payload) error {
 	}
 	// Add to the queue
 	if p.Id != "" {
+		q.payloadMutex.Lock()
 		q.payloadQueue = append(q.payloadQueue, p)
+		q.payloadMutex.Unlock()
 		q.event("Payload Queued [id]: " + p.Id)
 	}
 	return nil
@@ -144,6 +157,7 @@ func (q *RateQueue) Close() {
 	q.event("Rate Queue: All Work completed")
 }
 
+// event to write events into the RateQueue's feed
 func (q *RateQueue) event(s string) {
 	if q.EventFeed != nil {
 		q.EventFeed("[" + q.Tag + "] " + s)
