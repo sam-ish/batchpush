@@ -5,6 +5,8 @@ It is designed to be lightweight, efficient and easy to use.
 
 Free feel to make any suggestions for improvements/optimizations.
 
+[![Go](https://github.com/sam-ish/payloadQueue/actions/workflows/go.yml/badge.svg)](https://github.com/sam-ish/payloadQueue/actions/workflows/go.yml)
+
 # Simple usage: 
 There are simple code examples in the [examples folder](./examples/). Below is a sample usage:
 
